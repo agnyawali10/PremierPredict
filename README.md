@@ -1,73 +1,203 @@
-# PremierPredict ⚽🤖
+# PremierPredict
 
-PremierPredict is a portfolio-ready Premier League forecasting application. It trains a machine-learning classifier on completed matches, estimates win/draw/loss probabilities for upcoming fixtures, and runs Monte Carlo simulations to forecast the final table.
+PremierPredict is a full-stack machine learning web application that tracks English Premier League standings and predicts how teams may finish the season.
 
-## Why I built it
-I wanted a project that combines software engineering, machine learning, data processing, API integration, and a subject I enjoy. Rather than directly predicting a final rank, PremierPredict models individual match outcomes and uses those probabilities to simulate how the rest of a season could unfold.
+Rather than directly predicting a team's final position, PremierPredict estimates the probabilities of individual match outcomes and uses those probabilities to simulate the remainder of the season. The simulations produce projected standings and probabilities for outcomes such as winning the league, finishing in the top four, and relegation.
 
 ## Features
-- FastAPI backend and JSON prediction endpoint
-- Pandas feature-engineering pipeline
-- scikit-learn Random Forest classifier
-- Win/draw/loss probability estimates
-- Monte Carlo season simulation
-- Predicted position, projected points, title, top-four, and relegation probabilities
-- Optional live Premier League data from football-data.org
-- Offline sample mode so the repository works immediately
-- Automated pytest pipeline test
 
-## Architecture
-`football-data.org / CSV -> Pandas feature engineering -> Random Forest -> match probabilities -> Monte Carlo simulation -> FastAPI -> dashboard`
+- Track Premier League standings and team performance
+- Process historical and current match data
+- Generate win, draw, and loss probabilities for upcoming matches
+- Predict final Premier League standings
+- Run Monte Carlo simulations of remaining fixtures
+- Calculate projected points and finishing positions
+- Estimate title, top-four, and relegation probabilities
+- Display predictions through a web dashboard
+- REST API for accessing prediction results
+- Optional integration with live Premier League match data
 
-### Model features
-The starter model deliberately uses explainable team-level features:
-- points per game
-- goal difference per game
-- recent five-match points/form
-- home vs. away team context
+## Tech Stack
 
-This is intentionally a baseline model. Future versions can add expected goals (xG), Elo ratings, injuries, rest days, transfer values, and calibrated probabilities.
+**Backend**
+- Python
+- FastAPI
 
-## Run locally
+**Machine Learning & Data**
+- scikit-learn
+- Pandas
+- NumPy
+- Random Forest Classification
+- Monte Carlo Simulation
+
+**Frontend**
+- HTML
+- CSS
+- JavaScript
+
+**Development**
+- Git
+- GitHub
+- pytest
+
+## How It Works
+
+PremierPredict uses the following pipeline:
+
+`Match Data → Feature Engineering → ML Model → Match Probabilities → Monte Carlo Simulation → Predicted Standings`
+
+### 1. Data Processing
+
+Historical match results are processed to maintain statistics for each Premier League team.
+
+Team performance information is updated chronologically so that features for a match only contain information that would have been available before that match occurred.
+
+This prevents future information from leaking into the model's training data.
+
+### 2. Feature Engineering
+
+PremierPredict creates features representing differences between the home and away teams, including:
+
+- Points per game
+- Goal difference per game
+- Recent form
+- Home-field advantage
+- Historical team performance
+
+These features provide the machine learning model with information describing each team's performance leading into a match.
+
+### 3. Match Prediction
+
+A Random Forest classifier is trained on historical Premier League match results.
+
+For an upcoming fixture, the model estimates three probabilities:
+
+- Home win
+- Draw
+- Away win
+
+Instead of treating the model's most likely result as certain, PremierPredict preserves these probabilities for use during season simulation.
+
+### 4. Monte Carlo Season Simulation
+
+The predicted probabilities are used to simulate the remaining Premier League fixtures repeatedly.
+
+Each simulated match result updates the corresponding team's points and standings.
+
+After many simulated seasons, PremierPredict aggregates the results to calculate:
+
+- Average projected points
+- Predicted finishing position
+- Title probability
+- Top-four probability
+- Relegation probability
+
+This approach represents uncertainty in future match results rather than producing only one deterministic final table.
+
+## Project Structure
+
+```text
+PremierPredict/
+├── app/
+│   ├── data.py
+│   └── main.py
+├── data/
+│   ├── sample_fixtures.csv
+│   └── sample_matches.csv
+├── ml/
+│   ├── features.py
+│   ├── model.py
+│   └── simulation.py
+├── static/
+│   └── style.css
+├── templates/
+│   └── index.html
+├── tests/
+│   └── test_core.py
+├── .env.example
+├── .gitignore
+├── README.md
+└── requirements.txt
+```
+
+## Installation
+
+Clone the repository:
+
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
+git clone https://github.com/YOUR-USERNAME/PremierPredict.git
+cd PremierPredict
+```
+
+Create a virtual environment:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
 pip install -r requirements.txt
+```
+
+## Running the Application
+
+Start the FastAPI development server:
+
+```bash
 uvicorn app.main:app --reload
 ```
-Then open `http://127.0.0.1:8000`.
 
-## Live data
-Create a `.env` file or export an environment variable:
+Then open the local application in your browser.
+
+FastAPI also provides interactive API documentation through the application's `/docs` endpoint.
+
+## Data
+
+PremierPredict includes sample match and fixture data so the application can run locally without requiring an external API key.
+
+The application can also be configured to retrieve current football data using an external football-data API.
+
+API credentials should be stored in environment variables and should never be committed to the repository.
+
+See `.env.example` for the expected environment-variable configuration.
+
+## Testing
+
+Run the automated tests with:
+
 ```bash
-export FOOTBALL_DATA_API_KEY="your_key_here"
-```
-Never commit the key. Select **Live API** in the dashboard after configuring it.
-
-## API
-`GET /api/predictions?source=sample&simulations=3000`
-
-`GET /health`
-
-## Tests
-```bash
-pytest -q
+pytest
 ```
 
-## ML approach
-For every historical match, PremierPredict constructs features using only information available *before* that match. This avoids a common form of data leakage. A Random Forest classifier predicts H/D/A probabilities. For each remaining fixture, those probabilities are sampled during thousands of simulated seasons. The distribution of simulated finishes becomes the forecast.
+The test suite verifies the core prediction and simulation pipeline.
 
-## Limitations
-This is a portfolio ML system, not a betting model. The bundled dataset is intentionally small so the repo runs immediately. A production-quality forecast should train on multiple seasons, use time-based validation, evaluate probability calibration/log loss, and incorporate richer football features.
+## Current Limitations
 
-## Interview talking points
-- **Why probabilities instead of directly predicting table position?** League position is an emergent result of individual fixtures. Modeling matches makes the system easier to reason about and lets Monte Carlo simulation quantify uncertainty.
-- **How did you avoid data leakage?** Each training row is generated before updating team statistics with that match's result.
-- **Why Random Forest?** It handles nonlinear relationships, requires little preprocessing, supports multiclass probability estimates, and provides a strong understandable baseline.
-- **What would you improve?** Train on several seasons, add Elo/xG features, use time-series validation, compare logistic regression/gradient boosting, calibrate probabilities, persist data in PostgreSQL, and deploy with Docker/cloud infrastructure.
-- **Biggest engineering lesson?** Separating data acquisition, feature engineering, modeling, simulation, and presentation makes each layer independently testable and replaceable.
+The bundled dataset is intentionally small and is primarily intended to demonstrate the complete prediction pipeline.
 
-## Resume bullets
-- Developed a full-stack Premier League forecasting application using Python, FastAPI, Pandas, and scikit-learn to process match data and expose ML-generated predictions through a REST API.
-- Engineered a leakage-aware feature pipeline and Random Forest classifier to estimate home-win, draw, and away-win probabilities from team form, points-per-game, and goal-difference metrics.
-- Implemented Monte Carlo season simulations to forecast final standings, projected points, and probabilities of title, top-four, and relegation outcomes.
+Prediction quality depends heavily on the quantity and quality of historical match data available to the model. The current model should therefore be treated as a baseline rather than a production forecasting system.
+
+## Future Improvements
+
+Potential improvements include:
+
+- Train on multiple Premier League seasons
+- Add Elo team ratings
+- Incorporate expected goals (xG)
+- Add additional team and player statistics
+- Compare Random Forest with Logistic Regression and gradient-boosting models
+- Implement time-based cross-validation
+- Evaluate probability calibration
+- Expand automated testing
+- Add team-specific prediction pages
+- Improve dashboard visualizations
+- Add persistent database storage
+- Containerize the application with Docker
+- Deploy the application publicly
+
+## Disclaimer
+
+PremierPredict is an educational software and machine learning project. Predictions are probabilistic estimates and should not be interpreted as guaranteed sporting outcomes.
